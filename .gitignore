@@ -1,0 +1,14 @@
+autom4te.cache
+configure
+
+build*
+
+doc
+
+test/CA/test_ca/
+test/CA/bad_pki/
+test/CA/bad_pki_logs/
+test/workdir/
+test/*.pyc
+
+.clang-format

@@ -1,0 +1,230 @@
+HOME            = .
+RANDFILE        = /dev/urandom
+
+# To use this configuration file with the "-extfile" option of the
+# "openssl x509" utility, name here the section containing the X.509v3
+# extensions to use:
+# extensions        =
+# (Alternatively, use a configuration file that has only X.509v3 extensions in
+# its main [= default] section.)
+
+###############################################################################
+[ ca ]
+default_ca       = CA_default          # The default ca section
+crl_extensions   = crl_exts
+
+###############################################################################
+[ CA_default ]
+dir              = ./cont              # Where everything is kept
+certs            = $dir/certs          # Where the issued certs are kept
+crl_dir          = $dir/crl            # Where the issued crl are kept
+database         = $dir/index.txt      # database index file
+unique_subject   = no                  # Set to 'no' to allow creation of
+                                       # several certificates with same subject
+new_certs_dir    = $dir/certs          # default place for new certs
+
+certificate      = $dir/cacert.pem     # The CA certificate
+serial           = $dir/serial         # The current serial number
+crlnumber        = $dir/crlnumber      # the current crl number must be
+                                       # commented out to leave a V1 CRL
+crl              = $dir/crl.pem        # The current CRL
+private_key      = $dir/ca-privkey.pem # The private key
+
+default_days     = 365                 # how long to certify for
+default_crl_days = 30                  # how long before next CRL
+default_md       = sha1                # use public key default MD
+# FIXME: (hard?): replace this by forcing sha256? Supported?
+# TODO: I don't know what to think of this option below
+preserve         = no                  # keep passed DN ordering
+
+# A few different way of specifying how similar the request should look. For
+# type CA, the listed attributes must be the same, and the optional and
+# supplied fields are just that.
+policy           = policy_match
+
+###############################################################################
+# For the CA policy
+[ policy_match ]
+countryName             = match
+stateOrProvinceName     = match
+organizationName        = match
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+###############################################################################
+# For the 'anything' policy
+# At this point in time, you must list all acceptable 'object' types.
+[ policy_anything ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+###############################################################################
+[ req ]
+# Below is the length of RSA key to be generated if option -key is not used
+# when creating CSR with openssl req
+default_bits       = 2048
+distinguished_name = req_distinguished_name
+string_mask        = utf8only
+req_extensions     = v3_req    # The extensions to add to a certificate request
+
+###############################################################################
+[ req_distinguished_name ]
+countryName                    = Country Name (2 letter code)
+countryName_default            = FR
+countryName_min                = 2
+countryName_max                = 2
+
+stateOrProvinceName            = State or Province Name (full name)
+stateOrProvinceName_default    = Ile de France
+
+localityName                   = Locality Name (eg, city)
+localityName_default           = Paris
+
+0.organizationName             = Organization Name (eg, company)
+0.organizationName_default     = ANSSI
+
+organizationalUnitName         = Organizational Unit Name (eg, section)
+organizationalUnitName_default = 0002 000000000
+# RGS compliance implies "0002 " concatenated with SIREN/SIRET number here
+
+# Certificates generated here can be considered as "certificats de recette"
+# according to RGS, so that we impose that the commonName starts with TEST
+commonName                     = TEST-CONTROLLER
+commonName_max                 = 64
+
+# SET-ex3                        = SET extension number 3
+
+###############################################################################
+[v3_req]
+# empty, which is not a problem since extensions are not copied from CSR
+
+###############################################################################
+[ x509 ]
+version            = 2
+distinguished_name = req_distinguished_name
+string_mask        = utf8only
+x509_extensions    = v3_x509_sign_ctrl # The extensions to add to a certificate
+
+###############################################################################
+[ v3_x509_ca ]
+basicConstraints       = critical, CA:TRUE, pathlen:0
+# This means that no sub-CA is supposed to certify the certificates performed
+# by this CA.
+keyUsage               = critical, keyCertSign, cRLSign
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+# TODO: option above should be compatible with RFC 5280
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+# This is to respect the requets by the RGS that AIK is non-critical and always
+# present and worth the SKI of the CA emitting the certificate.
+# TODO: (hard?) Rendre critical
+crlDistributionPoints  = URI:http://url-of-update-server-where-crl-can-be-found
+# "Should I put https ?"
+# In any case, as CRL are signed, they can be transmitted over an unsecured
+# link. CRL issue relies far more on the disponibility of the link.
+# Also, beware not to create loopholes, if a secure connection is used, the
+# reception of the CRLs depends on the validity of the certificates to
+# establish the secure connection. E.g. if this CA is revoked, no CRLs can ever
+# be successfully received.
+
+###############################################################################
+[ v3_x509_sign_ctrl ]
+basicConstraints       = critical, CA:FALSE
+keyUsage               = critical, digitalSignature
+subjectKeyIdentifier   = hash
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+authorityKeyIdentifier = keyid:always
+# This is to respect the requets by the RGS that AIK is non-critical and always
+# present and worth the SKI of the CA emitting the certificate.
+# TODO: (hard?) Rendre critical
+crlDistributionPoints  = URI:http://url-of-update-server-where-crl-can-be-found
+# "Should I put https ?"
+# In any case, as CRL are signed, they can be transmitted over an unsecured
+# link. CRL issue relies far more on the disponibility of the link.
+# Also, beware not to create loopholes, if a secure connection is used, the
+# reception of the CRLs depends on the validity of the certificates to
+# establish the secure connection. E.g. if this CA is revoked, no CRLs can ever
+# be successfully received.
+
+###############################################################################
+[crl_exts]
+# Even if empty the existence of this section (or its usage through -crlexts
+# option of openssl ca) guarantees creation of CRL v2 rather than v1.
+authorityKeyIdentifier = keyid:always
+
+###############################################################################
+################ BAD OPTIONS FOR TEST PURPOSES ################################
+###############################################################################
+
+########### BAD CA's
+###############################################################################
+[ bad_v3_x509_ca_cafalse ]
+basicConstraints       = critical, CA:FALSE, pathlen:1
+keyUsage               = critical, keyCertSign, cRLSign
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+crlDistributionPoints  = URI:http://url-of-update-server-where-crl-can-be-found
+###############################################################################
+[ bad_v3_x509_ca_manyusage ]
+basicConstraints       = critical, CA:TRUE, pathlen:1
+keyUsage               = critical, keyCertSign, cRLSign, digitalSignature
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+crlDistributionPoints  = URI:http://url-of-update-server-where-crl-can-be-found
+###############################################################################
+[ bad_v3_x509_ca_manyusage_2 ]
+basicConstraints       = critical, CA:TRUE, pathlen:1
+keyUsage               = critical, keyCertSign, digitalSignature
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+crlDistributionPoints  = URI:http://url-of-update-server-where-crl-can-be-found
+###############################################################################
+[ bad_v3_x509_ca_missingusage ]
+basicConstraints       = critical, CA:TRUE, pathlen:1
+keyUsage               = critical, cRLSign, digitalSignature
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+###############################################################################
+[ bad_v3_x509_ca_missingBC ]
+keyUsage               = critical, keyCertSign, cRLSign
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+##############################################################################
+[ bad_v3_x509_ca_nousage ]
+basicConstraints       = critical, CA:TRUE, pathlen:1
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always
+
+############## BAD SIGNING KEYS
+###############################################################################
+[ bad_v3_x509_sign_ctrl_manyusage ]
+basicConstraints       = critical, CA:FALSE
+keyUsage               = critical, digitalSignature, dataEncipherment
+subjectKeyIdentifier   = hash
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+authorityKeyIdentifier = keyid:always
+###############################################################################
+[ bad_v3_x509_sign_ctrl_missingusage ]
+basicConstraints       = critical, CA:FALSE
+keyUsage               = critical, keyCertSign
+subjectKeyIdentifier   = hash
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+authorityKeyIdentifier = keyid:always
+###############################################################################
+[ bad_v3_x509_sign_ctrl_nousage ]
+basicConstraints       = critical, CA:FALSE
+subjectKeyIdentifier   = hash
+certificatePolicies    = 2.5.29.32.0  # OID of anyPolicy
+authorityKeyIdentifier = keyid:always

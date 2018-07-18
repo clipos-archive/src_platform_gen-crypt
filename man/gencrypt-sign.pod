@@ -1,0 +1,78 @@
+=pod
+
+=encoding utf8
+
+=head1 NAME
+
+sign - add a signature to an AR archive.
+
+=head1 SYNOPSIS
+
+B<sign> { B<-D> | B<-C> } [B<-vVh>] B<-k> F<key> B<-c> F<cert> [B<-p> F<pass>]
+[B<-r> F<re>] F<file>
+
+=head1 DESCRIPTION
+
+B<sign> creates a signature for an AR file named F<file>, using the F<key>. The
+signature along with the signer's certificate F<cert> is included at the end of
+the archive.
+
+The B<-D> and B<-C> mutually exclusive arguments specify whether the signature
+is created with the developer or controller type.
+
+=head1 OPTIONS
+
+=over 12
+
+=item B<-D> (mandatory)
+
+Create a developer signature (dev_sign)
+
+=item B<-C> (mandatory)
+
+Create a controller signature (ctrl_sign)
+
+=item B<-k> F<key> (mandatory)
+
+Use F<key> as the developer or controller private key to create the signature.
+For civil cryptography, F<key> must be a PEM encoded private key.
+
+=item B<-c> F<cert> (mandatory)
+
+Use F<cert> as the developer or controller certificate (public key) of the
+sender, to be included in the signature member of the archive. For civil
+cryptography, F<key> must be a PEM encoded x509v3 certificate.
+
+=item B<-p> F<pass>
+
+Read the password for F<key> in the F<pass> file. No default is specified for
+civil cryptography.
+
+=item B<-r> F<re>
+
+Check that the Subject Name of F<key> matches the F<re> regular expression.
+
+=item B<-h>
+
+Print a help message and exit.
+
+=item B<-v>
+
+Print the package version and exit.
+
+=item B<-V>
+
+Be more verbose: set once for log messages, twice for debug.
+
+=back
+
+=head1 AUTHOR
+
+Vincent Strubel <L<clipos@ssi.gouv.fr>>,
+Timothée Ravier <L<clipos@ssi.gouv.fr>>
+
+=head1 SEE ALSO
+
+L<gencrypt-check(8)|gencrypt-check>
+
+=cut

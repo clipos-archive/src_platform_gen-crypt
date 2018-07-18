@@ -1,0 +1,122 @@
+=pod
+
+=encoding utf8
+
+=head1 NAME
+
+check - check both developer and controller signatures on an AR archive.
+
+check-client - client to interact with a check-daemon and send it archives to
+check their signatures.
+
+check-daemon - daemon receiving commands from a check-client and checking sent
+archives signatures.
+
+=head1 SYNOPSIS
+
+For civil cryptography:
+
+=over 12
+
+=item B<check> [B<-vVh>] B<-k> F<path> [B<-r> F<re>] B<-l> F<crl> B<-t>
+F<trusted> B<-K> F<path2> [B<-R> F<re2>] B<-L> F<crl2> B<-T> F<trusted2>
+
+=item B<check-daemon> [B<-vVh>] B<-S> F<socket> B<-k> F<path> [B<-r> F<re>]
+B<-l> F<crl> B<-t> F<trusted> B<-K> F<path2> [B<-R> F<re2>] B<-L> F<crl2> B<-T>
+F<trusted2> [B<-c>] [B<-F>]
+
+=item B<check-client> [B<-vVh>] B<-S> F<socket> { B<-c> F<package> | B<-q> }
+
+=back
+
+=head1 DESCRIPTION
+
+B<check> ensures that both the developer and controller signatures appended to
+the F<file> AR archive are valid. Those signatures are generally produced by
+the L<gencrypt-sign(8)> utility.
+
+The B<check-client> interacts with a B<check-daemon> over the F<socket> to
+validate the F<package> developer and controller signatures. It may also ask
+the B<check-daemon> to stop running.
+
+The B<check-daemon> drops priviledges, optionnaly chroots itself into
+F</var/empty/gen-crypt> and listens on F<socket> for incomming requests from
+B<check-client>. It then validate developer and controller signatures on files
+it receives and returns the result to the B<check-client>.
+
+=head1 OPTIONS
+
+Generic options:
+
+=over 12
+
+=item B<-h>
+
+Print a help message and exit.
+
+=item B<-v>
+
+Print the package version and exit.
+
+=item B<-V>
+
+Be more verbose: set once for log messages, twice for debug.
+
+=item B<-c>
+
+Chroot into /var/empty/gen-crypt after startup
+
+=item B<-F>
+
+Do not daemonize, stay in foreground
+
+=item B<-k> F<path> (mandatory)
+
+Path to a folder containing a B<c_rehashed> repository of certificates to
+validate developers certificates.
+
+=item B<-r> F<re>
+
+Optional regular expression that the subject name in verified developer
+certificates must match.
+
+=item B<-l> F<crl> (mandatory)
+
+Path to a folder containing a B<c_rehashed> repository of CRL for the developer
+PKI.
+
+=item B<-t> F<trusted> (mandatory)
+
+Path to the certificate to trust as the issuer of developer certificates.
+
+=item B<-K> F<path2> (mandatory)
+
+Path to a folder containing a B<c_rehashed> repository of certificates to
+validate controllers certificates.
+
+=item B<-R> F<re2>
+
+Optional regular expression that the subject name in verified controller
+certificates must match.
+
+=item B<-L> F<crl2> (mandatory)
+
+Path to a folder containing a B<c_rehashed> repository of CRL for the
+controller PKI.
+
+=item B<-T> F<trusted2> (mandatory)
+
+Path to the certificate to trust as the issuer of controller certificates.
+
+=back
+
+=head1 AUTHOR
+
+Vincent Strubel <L<clipos@ssi.gouv.fr>>,
+Timothée Ravier <L<clipos@ssi.gouv.fr>>
+
+=head1 SEE ALSO
+
+L<gencrypt-sign(8)|gencrypt-sign>
+
+=cut

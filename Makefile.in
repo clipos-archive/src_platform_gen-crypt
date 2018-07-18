@@ -1,0 +1,182 @@
+VERSION=1.0.3
+PACKAGE=gen-crypt
+
+export VERSION
+export PACKAGE
+
+srcdir = @srcdir@
+VPATH = @srcdir@
+
+SHELL = @SHELL@
+
+CC = @CC@
+
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+
+PREFIX = @prefix@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+
+crypto = @crypto@
+with_sign = @with_sign@
+with_test = @with_test@
+with_coverage = @with_coverage@
+
+datarootdir = @datarootdir@
+mandir = @mandir@
+
+ifndef VERBOSE
+MAKEFLAGS += -s --no-print-directory
+ECHO = echo
+else
+ECHO = echo > /dev/null
+endif
+
+################################################################################
+
+.PHONY: all build build_test man install
+
+all: build man
+
+################################################################################
+
+EXES := check-daemon check-client check
+TEST_EXES :=
+
+CHECK_DAEMON_SRC := file.c \
+					arutils.c \
+					$(crypto)-chk_ctx.c \
+					$(crypto)-crypto.c \
+					$(crypto)-structures.c \
+					check_daemon.c
+
+CHECK_CLIENT_SRC := file.c \
+					check_client.c
+
+CHECK_SRC :=        file.c \
+					arutils.c \
+					$(crypto)-chk_ctx.c \
+					$(crypto)-crypto.c \
+					$(crypto)-structures.c \
+					check.c
+
+ifeq ($(with_sign),yes)
+SIGN_SRC :=         file.c \
+					arutils.c \
+					$(crypto)-chk_ctx.c \
+					$(crypto)-crypto.c \
+					$(crypto)-structures.c \
+					sign.c
+EXES += sign
+endif
+
+CHECK_DAEMON_SRC += x509_get_ext.c
+CHECK_SRC +=        x509_get_ext.c
+SIGN_SRC +=         x509_get_ext.c
+
+################################################################################
+
+# Required flags
+CFLAGS += -DUNIX -DVERSION=${VERSION}
+
+CFLAGS += -DCIVIL_GEN_CRYPT
+CRYPT_FLAGS := -lcrypto
+
+################################################################################
+
+# Enable test related programs and compilation flags
+ifeq ($(with_test),yes)
+# Generic test program to alter package signature
+CHANGE_PKG_SIG_SRC := file.c arutils.c change_pkg_sig.c
+TEST_EXES += change_pkg_sig
+
+# Generic program to remove a package signature
+TRUNCATE_SIG_SRC := arutils.c file.c truncate_sig.c
+TEST_EXES += truncate_sig
+
+# Test specific flag to allow the check-dameon to not chroot
+CFLAGS += -DTEST_GEN_CRYPT
+endif
+
+################################################################################
+
+# Enable code coverage compilation flags
+ifeq ($(with_coverage),yes)
+CFLAGS += --coverage
+endif
+
+################################################################################
+
+%.o: ${srcdir}/src/%.c
+	@${ECHO} "        CC                $<"
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+check-daemon: $(CHECK_DAEMON_SRC:.c=.o)
+	@${ECHO} "        LD                $@"
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -lz $(CRYPT_FLAGS) -lclip
+
+check-client: $(CHECK_CLIENT_SRC:.c=.o)
+	@${ECHO} "        LD                $@"
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -lclip
+
+check: $(CHECK_SRC:.c=.o)
+	@${ECHO} "        LD                $@"
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -lz $(CRYPT_FLAGS)
+
+ifeq ($(with_sign),yes)
+sign: $(SIGN_SRC:.c=.o)
+	@${ECHO} "        LD                $@"
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -lz $(CRYPT_FLAGS)
+endif
+
+ifeq ($(with_test),yes)
+change_pkg_sig: $(CHANGE_PKG_SIG_SRC:.c=.o)
+	@${ECHO} "        LD                $@"
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -lz $(CRYPT_FLAGS)
+
+truncate_sig: $(TRUNCATE_SIG_SRC:.c=.o)
+	@${ECHO} "        LD                $@"
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -lz $(CRYPT_FLAGS)
+
+endif
+
+################################################################################
+
+PODS := gencrypt-check.pod
+LINKS := gencrypt-check-client.8 gencrypt-check-daemon.8
+LINK_DEST := gencrypt-check.8
+DIR := man8
+
+ifeq ($(with_sign),yes)
+PODS += gencrypt-sign.pod
+endif
+
+PAGES := $(PODS:.pod=.8)
+
+man: $(PAGES)
+
+%.8: ${srcdir}/man/%.pod
+	@${ECHO} "        POD2MAN           $<"
+	pod2man --utf8 -c="CLIP Utilities" -s=8 -r="${PACKAGE}-${VERSION}" $< > $@
+
+################################################################################
+
+build: ${EXES}
+
+build_test: ${TEST_EXES}
+
+install: build man
+	list='$(EXES)'; for exe in $$list; do \
+		${ECHO} "        INST              ${DESTDIR}${bindir}/$$exe" ;\
+		install -D $$exe ${DESTDIR}${bindir}/$$exe ;\
+	done
+	list='$(PAGES)'; for page in $$list; do \
+		${ECHO} "        INST              ${DESTDIR}${mandir}/$$page" ;\
+		install -D $$page ${DESTDIR}${mandir}/$$page ;\
+	done
+	list='$(LINKS)'; for link in $$list; do \
+		${ECHO} "        LINK              ${DESTDIR}${mandir}/$$link" ;\
+		ln -s ./${LINK_DEST} ${DESTDIR}${mandir}/$$link ;\
+	done

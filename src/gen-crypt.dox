@@ -1,0 +1,224 @@
+/** @mainpage Generic cryptographic tools and API to sign CLIP packages
+ *
+ * @section section_general Gen-crypt tools
+ *
+ * The following binaries can be built from this source tree:
+ *   @li @b sign: append a signature to an AR (Debian) archive
+ *   @li @b check: check the validity of a package signature made my @b sign
+ *   @li @b check-client/check-daemon: client/daemon version of the @b check
+ *   tool that enable faster signature checking
+ *
+ * The main goal of the gen-crypt project is to make those tools use civil
+ * (OpenSSL) based cryptography.
+ *
+ * @section section_intro Gen-crypt API
+ *
+ * The main API is fully documented in the gen_crypt.h page. Other source files
+ * are partially documented.
+ *
+ * @section section_build Building gen-crypt tools
+ *
+ * It is recommended to do out-of-tree builds.
+ *
+ * Select the crypto to use:
+ * @code
+ * $ CRYPTO=civil
+ * @endcode
+ *
+ * Build the main tools and the man pages:
+ * @code
+ * $ mkdir ./build_${CRYPTO}
+ * $ cd ./build_${CRYPTO}
+ * $ autoreconf -fiv ..
+ * $ ../configure --with-crypto=${CRYPTO} --enable-sign
+ * $ make
+ * @endcode
+ *
+ * @section section_example Examples
+ *
+ * Arguments needed by @b sign are documented in <b>gencrypt-sign(8)</b>.
+ * Arguments needed by @b check, @b check-client and @b check-daemon are
+ * documented in <b>gencryp-check(8)</b>.
+ *
+ * @subsection subsection_example_civil Using civil cryptography
+ *
+ * For those examples to work you need a valid PKI. You may generate such a PKI
+ * using the script @c create_test_ca.sh provided in the @c 'test/CA'
+ * directory.
+ *
+ * Sign a package:
+ *
+ * @code
+ * $ cp test/workdir/packages/foo_0.1-1_all.deb /tmp/
+ *
+ * $ build_civil/sign -D \
+ *       -k test/CA/test_ca/1CA_2SubCA/dev/private/dev_1.pem \
+ *       -c test/CA/test_ca/1CA_2SubCA/dev/certs/1111.pem \
+ *       -V /tmp/foo_0.1-1_all.deb
+ * main(../src/sign.c:200): [foo_0.1-1_all.deb] dev_sign signature added
+ *
+ * $ build_civil/sign -C \
+ *       -k test/CA/test_ca/1CA_2SubCA/cont/private/cont_1.pem \
+ *       -c test/CA/test_ca/1CA_2SubCA/cont/certs/1111.pem \
+ *       -V /tmp/foo_0.1-1_all.deb
+ * main(../src/sign.c:200): [foo_0.1-1_all.deb] ctrl_sign signature added
+ * @endcode
+ *
+ * Sign a package using an encrypted private keys (password: test):
+ *
+ * @code
+ * $ cp test/workdir/packages/foo_0.1-1_all.deb /tmp/
+ *
+ * $ build_civil/sign -D \
+ *       -k test/CA/test_ca/1CA_2SubCA/dev/private/dev_2.pem.enc \
+ *       -c test/CA/test_ca/1CA_2SubCA/dev/certs/2222.pem \
+ *       -V /tmp/foo_0.1-1_all.deb
+ * Enter PEM pass phrase:
+ * main(../src/sign.c:200): [foo_0.1-1_all.deb] dev_sign signature added
+ *
+ * $ build_civil/sign -C \
+ *       -k test/CA/test_ca/1CA_2SubCA/cont/private/cont_2.pem.enc \
+ *       -c test/CA/test_ca/1CA_2SubCA/cont/certs/2222.pem \
+ *       -V /tmp/foo_0.1-1_all.deb
+ * Enter PEM pass phrase:
+ * main(../src/sign.c:200): [foo_0.1-1_all.deb] ctrl_sign signature added
+ * @endcode
+ *
+ * Check a package with @b check:
+ *
+ * @code
+ * $ build_civil/check \
+ *       -k test/CA/test_ca/1CA_2SubCA/hashed/dev/ \
+ *       -l test/CA/test_ca/1CA_2SubCA/hashed/dev_crl/ \
+ *       -t test/CA/test_ca/1CA_2SubCA/hashed/dev/dev.pem \
+ *       -K test/CA/test_ca/1CA_2SubCA/hashed/cont/ \
+ *       -L test/CA/test_ca/1CA_2SubCA/hashed/cont_crl/ \
+ *       -T test/CA/test_ca/1CA_2SubCA/hashed/cont/cont.pem \
+ *       -V /tmp/foo_0.1-1_all.deb
+ * verify_cert_chain(../src/civil-crypto.c:979): Verification result text: ok
+ * gen_crypt_init_check(../src/civil-crypto.c:1118): Trusted CA was successfully verified.
+ * verify_cert_chain(../src/civil-crypto.c:979): Verification result text: ok
+ * gen_crypt_init_check(../src/civil-crypto.c:1118): Trusted CA was successfully verified.
+ * main(../src/check.c:275): Connected
+ * verify_cert_chain(../src/civil-crypto.c:979): Verification result text: ok
+ * verify_cert_chain(../src/civil-crypto.c:1000): Certificate issuer checks out
+ * verify_ecdsa_sig(../src/civil-crypto.c:1231): signature verified successfully
+ * check_sigs(../src/check.c:144): dev_sign signature OK
+ * verify_cert_chain(../src/civil-crypto.c:979): Verification result text: ok
+ * verify_cert_chain(../src/civil-crypto.c:1000): Certificate issuer checks out
+ * verify_ecdsa_sig(../src/civil-crypto.c:1231): signature verified successfully
+ * check_sigs(../src/check.c:158): ctrl_sign signature OK
+ * main(../src/check.c:327): Successful signature verification!
+ * @endcode
+ *
+ * Check a package with @b check-client and @b check-daemon. You must compile
+ * @b check-daemon with the @c --enable-testing configure switch to enable the
+ * @c -U argument that will disable privilege dropping:
+ *
+ * @code
+ * $ pushd build_civil
+ * $ rm check_daemon.o check-daemon
+ * $ ../configure --with-crypto=civil --enable-sign --enable-testing
+ * $ make check-daemon
+ * $ popd
+ *
+ * $ build_civil/check-daemon \
+ *       -k test/CA/test_ca/1CA_2SubCA/hashed/dev/ \
+ *       -l test/CA/test_ca/1CA_2SubCA/hashed/dev_crl/ \
+ *       -t test/CA/test_ca/1CA_2SubCA/hashed/dev/dev.pem \
+ *       -K test/CA/test_ca/1CA_2SubCA/hashed/cont/ \
+ *       -L test/CA/test_ca/1CA_2SubCA/hashed/cont_crl/ \
+ *       -T test/CA/test_ca/1CA_2SubCA/hashed/cont/cont.pem \
+ *       -V -U -F -S /tmp/gencrypt &
+ * verify_cert_chain(../src/civil-crypto.c:979): Verification result text: ok
+ * gen_crypt_init_check(../src/civil-crypto.c:1118): Trusted CA was successfully verified.
+ * verify_cert_chain(../src/civil-crypto.c:979): Verification result text: ok
+ * gen_crypt_init_check(../src/civil-crypto.c:1118): Trusted CA was successfully verified.
+ *
+ * $ build_civil/check-client -V -S /tmp/gencrypt -c /tmp/foo_0.1-1_all.deb
+ * [daemon] gen_crypt_verify_with_cache(../src/civil-crypto.c:1361): Tries to update the cache
+ * [daemon] verify_cert_chain(../src/civil-crypto.c:979): Verification result text: ok
+ * [daemon] verify_cert_chain(../src/civil-crypto.c:1000): Certificate issuer checks out
+ * [daemon] verify_ecdsa_sig(../src/civil-crypto.c:1231): signature verified successfully
+ * [daemon] gen_crypt_verify_with_cache(../src/civil-crypto.c:1361): Tries to update the cache
+ * [daemon] verify_cert_chain(../src/civil-crypto.c:979): Verification result text: ok
+ * [daemon] verify_cert_chain(../src/civil-crypto.c:1000): Certificate issuer checks out
+ * [daemon] verify_ecdsa_sig(../src/civil-crypto.c:1231): signature verified successfully
+ * [daemon] handle_filecheck(../src/check_daemon.c:288): Signature check OK
+ * [client] send_file(../src/check_client.c:76): Signature check OK for /tmp/foo_0.1-1_all.deb
+ *
+ * $ build_civil/check-client -S /tmp/gencrypt -q
+ * @endcode
+ *
+ * @section section_test Tests
+ *
+ * The @c test.sh script runs all the tests sequentially. It stops as soon as
+ * one error has been detected. If all the tests ran successfully, it will end
+ * printing the message @c 'Done'. Most of the tests are implemented in scripts
+ * in the test folder and are called by functions from the main @c test.sh
+ * script. Full test logs are stored in a subfolder in @c 'test/workdir/logs/'
+ * with a name based on the time and date the test was started.
+ *
+ * The script automates the following steps for civil crypto:
+ *   @li Compiles gen-crypt tools for civil crypto;
+ *   @li Creates two valid and multiple invalid civil PKIs using OpenSSL;
+ *   @li Create a mirror with packages with valid and invalid signatures.
+ *   Signed packages are renamed according to predefined patterns that enable
+ *   the next steps to figure out whether a package signature check should pass
+ *   or fail;
+ *   @li Check those packages using the standalone @b check tool. Packages
+ *   verifications that are expected to fail must fail and vice versa;
+ *   @li Check the packages using the client/daemon version;
+ *   @li Runs the tools with various valid and invalid arguments to make sure
+ *   that specific test cases work and specific invalid CA usage fail.
+ *
+ * Code coverage measurements are available using GCC and gcov tools.
+ *
+ * The following environment variables may be used to change all underlying
+ * commands and scripts behavior:
+ *   @li CRYPTO=civil: Use civil cryptographic.
+ *   @li DEBUG=y: Verbose logging for all gen-crypt binaries and scripts (uses
+ *   set -x to display all the commands run by scripts);
+ *   @li VALGRIND=y: Use Valgrind to check for memory errors and leaks in
+ *   gencrypt binaries (be aware that the civil @b sign binary is ignored by
+ *   default). @b WARNING: Running the full set of tests using this option will
+ *   take about five hours;
+ *   @li COVERAGE=y: Compile using GCov code coverage support and display code
+ *   coverage results.
+ *
+ * Full example:
+ * @code
+ * $ time COVERAGE=y CRYPTO=civil ./test.sh
+ * Test run '2016-05-03T17:10:00+0200', log dir 'test/workdir/logs/2016-05-03T17:10:00+0200'
+ * Running civil tests...
+ * Compiling civil binaries...
+ * Compiling civil binaries: OK
+ * Preparing civil test CA...
+ * Preparing civil test CA: OK
+ * Preparing civil-1CA_2SubCA package mirror...
+ * Preparing civil-1CA_2SubCA package mirror: OK
+ * Checking civil-1CA_2SubCA mirror using 'check'...
+ * Checking civil-1CA_2SubCA mirror using 'check': OK
+ * Checking civil-1CA_2SubCA mirror using 'check-daemon'...
+ * Checking civil-1CA_2SubCA mirror using 'check-daemon': OK
+ * Checking civil-1CA_2SubCA binaries with various arguments...
+ * Checking civil-1CA_2SubCA binaries with various arguments: OK
+ * Code covered by tests for civil-1CA_2SubCA crypto:
+ * Lines executed: 70.88% of 1473
+ * Preparing civil-2CA_NoSubCA package mirror...
+ * Preparing civil-2CA_NoSubCA package mirror: OK
+ * Checking civil-2CA_NoSubCA mirror using 'check'...
+ * Checking civil-2CA_NoSubCA mirror using 'check': OK
+ * Checking civil-2CA_NoSubCA mirror using 'check-daemon'...
+ * Checking civil-2CA_NoSubCA mirror using 'check-daemon': OK
+ * Checking civil-2CA_NoSubCA binaries with various arguments...
+ * Checking civil-2CA_NoSubCA binaries with various arguments: OK
+ * Code covered by tests for civil-2CA_NoSubCA crypto:
+ * Lines executed: 70.88% of 1473
+ * Done
+ *
+ * real    12m23.219s
+ * user    4m45.028s
+ * sys     1m0.024s
+ * @endcode
+ */

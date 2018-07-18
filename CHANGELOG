@@ -1,0 +1,31 @@
+# ChangeLog for <app-crypt>/<gen-crypt>
+
+*gen-crypt-1.0.3 (06 Feb 2018)
+
+  06 Feb 2018; Timothée Ravier <clipos@ssi.gouv.fr>
+  +gen-crypt-1.0.3.ebuild, -gen-crypt-1.0.2.ebuild:
+  Properly disable all date checks for CCSD (not implemented for civil).
+
+*gen-crypt-1.0.2 (24 Jan 2018)
+
+  24 Jan 2018; Timothée Ravier <clipos@ssi.gouv.fr>
+  +gen-crypt-1.0.2.ebuild, -gen-crypt-1.0.1.ebuild:
+  Disabled date checking for CCSD for signing operations.
+
+*gen-crypt-1.0.1 (08 Aug 2017)
+
+  08 Aug 2017; Nicolas Godinho <clipos@ssi.gouv.fr>
+  +gen-crypt-1.0.1.ebuild, -gen-crypt-1.0.0-r1.ebuild:
+  Fixed issues reported by the COSSI security code audit
+
+*gen-crypt-1.0.0-r1 (18 Jul 2017)
+
+  18 Jul 2017; Nicolas Belouin <clipos@ssi.gouv.fr>
+  +gen-crypt-1.0.0-r1.ebuild, -gen-crypt-1.0.0.ebuild:
+  Disable date checking for ccsd + hermes (Ugly Hack Inside)
+
+*gen-crypt-1.0.0 (28 Jun 2016)
+
+  28 Jun 2016; Timothée Ravier <clipos@ssi.gouv.fr>
+  +gen-crypt-1.0.0.ebuild:
+  Civil crypto support.
